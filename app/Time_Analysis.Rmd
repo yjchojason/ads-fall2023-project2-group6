@@ -1,0 +1,117 @@
+---
+title: "Analysis - Time"
+output: html_document
+date: "2023-10-02"
+name: "Jason Cho"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.width=12, fig.height=8, fig.path='figs/',
+                      echo=T, warning=FALSE, message=FALSE)
+```
+
+
+Copied and pasted the packages from other example's code
+```{r}
+if (!require("DT")) install.packages('DT')
+if (!require("dtplyr")) install.packages('dtplyr')
+if (!require("lubridate")) install.packages('lubridate')
+if (!require("ggmap")) install.packages('ggmap')
+if (!require("choroplethrZip")) {
+  # install.packages("devtools")
+  library(devtools)
+  install_github('arilamstein/choroplethrZip@v1.5.0')}
+
+library(dtplyr)
+library(dplyr)
+library(DT)
+library(lubridate)
+library(ggplot2)
+library(shiny)
+```
+
+
+Read Data 
+```{r}
+url <- "/Users/jasoncho/Documents/GitHub/ads-fall2023-project2-group6/data/MajorDisaster_data.csv"
+
+major_disaster_data <- read.csv(url)
+
+#head(major_disaster_data) 
+unique(major_disaster_data$incidentType)
+```
+Necessary Conversions
+```{r}
+# declarationDate -> Date format
+major_disaster_data$declarationDate <- as.Date(major_disaster_data$declarationDate, format="%Y-%m-%d")
+
+# Extracting Year and Month
+major_disaster_data$Year <- as.numeric(format(major_disaster_data$declarationDate, "%Y"))
+major_disaster_data$Month <- as.numeric(format(major_disaster_data$declarationDate, "%m"))
+```
+
+## Yearly and Monthly Analysis
+- I have added an option to select a specific disaster type, including the 'All' option
+- I have added a slide-bar to select a year more intuitively
+```{r}
+
+# UI
+ui <- fluidPage(
+  titlePanel("Major Disaster Data Analysis"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("disasterType", "Select Disaster Type:",
+                  choices = c("All", unique(major_disaster_data$incidentType)),
+                  selected = "All"),
+      radioButtons("analysisType", "Choose Analysis Type:",
+                   choices = c("Yearly Analysis", "Seasonal Analysis"),
+                   selected = "Yearly Analysis"),
+      conditionalPanel(
+        condition = "input.analysisType == 'Seasonal Analysis'",
+        sliderInput("yearSlider", "Select Year:",
+                    min = min(major_disaster_data$Year),
+                    max = max(major_disaster_data$Year),
+                    value = max(major_disaster_data$Year),
+                    step = 1,
+                    round = TRUE)
+      )
+    ),
+    mainPanel(
+      plotOutput("disasterPlot")
+    )
+  )
+)
+
+# SERVER
+server <- function(input, output) {
+  output$disasterPlot <- renderPlot({
+    filtered_data <- major_disaster_data
+    if (input$disasterType != "All") {
+      filtered_data <- filtered_data %>% filter(incidentType == input$disasterType)
+    }
+    
+    if (input$analysisType == "Yearly Analysis") {
+      yearly_data <- filtered_data %>% group_by(Year) %>% summarise(Count = n())
+      ggplot(yearly_data, aes(x=Year, y=Count)) + geom_line() + labs(title=paste("Yearly", input$disasterType, "Declarations"))
+    } else {
+      monthly_data <- filtered_data %>% 
+                      filter(Year == input$yearSlider) %>% 
+                      group_by(Month) %>% 
+                      summarise(Count = n())
+      ggplot(monthly_data, aes(x=Month, y=Count)) + geom_bar(stat="identity") + 
+      labs(title=paste("Monthly", input$disasterType, "Declarations for", input$yearSlider))
+    }
+  })
+}
+
+# Run the application 
+shinyApp(ui = ui, server = server)
+
+```
+
+
+
+
+
+
+
