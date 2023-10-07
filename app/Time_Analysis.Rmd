@@ -28,6 +28,7 @@ library(DT)
 library(lubridate)
 library(ggplot2)
 library(shiny)
+library(tidyr)
 ```
 
 
@@ -94,10 +95,20 @@ server <- function(input, output) {
       yearly_data <- filtered_data %>% group_by(Year) %>% summarise(Count = n())
       ggplot(yearly_data, aes(x=Year, y=Count)) + geom_line() + labs(title=paste("Yearly", input$disasterType, "Declarations"))
     } else {
+      # Create a data frame with all months
+      all_months <- data.frame(Month = 1:12)
+      
+      # Calculate monthly counts for the selected year and disaster type
       monthly_data <- filtered_data %>% 
                       filter(Year == input$yearSlider) %>% 
                       group_by(Month) %>% 
                       summarise(Count = n())
+      
+      # Ensure all months are represented
+      monthly_data <- all_months %>% 
+                      left_join(monthly_data, by = "Month") %>% 
+                      replace_na(list(Count = 0))
+      
       ggplot(monthly_data, aes(x=Month, y=Count)) + geom_bar(stat="identity") + 
       labs(title=paste("Monthly", input$disasterType, "Declarations for", input$yearSlider))
     }
@@ -108,6 +119,33 @@ server <- function(input, output) {
 shinyApp(ui = ui, server = server)
 
 ```
+
+
+```{r}
+url <- "/Users/jasoncho/Documents/GitHub/ads-fall2023-project2-group6/data/Disaster_data.csv"
+
+disaster_data <- read.csv(url)
+
+#head(major_disaster_data) 
+colnames(disaster_data)
+head(disaster_data)
+colnames(disaster_data)[24] <- "begin_month"
+colnames(disaster_data)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
