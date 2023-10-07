@@ -109,6 +109,9 @@ server <- function(input, output) {
                       left_join(monthly_data, by = "Month") %>% 
                       replace_na(list(Count = 0))
       
+      # Convert Month numbers to month names
+      monthly_data$Month <- factor(monthly_data$Month, levels = 1:12, labels = month.abb)
+      
       ggplot(monthly_data, aes(x=Month, y=Count)) + geom_bar(stat="identity") + 
       labs(title=paste("Monthly", input$disasterType, "Declarations for", input$yearSlider))
     }
