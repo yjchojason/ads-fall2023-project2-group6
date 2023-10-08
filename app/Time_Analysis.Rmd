@@ -18,9 +18,15 @@ if (!require("dtplyr")) install.packages('dtplyr')
 if (!require("lubridate")) install.packages('lubridate')
 if (!require("ggmap")) install.packages('ggmap')
 if (!require("choroplethrZip")) {
-  # install.packages("devtools")
+  #install.packages("devtools")
   library(devtools)
   install_github('arilamstein/choroplethrZip@v1.5.0')}
+
+if (!require("USA.state.boundaries")) install.packages('USA.state.boundaries')
+if (!require("dygraphs")) install.packages('dygraphs')
+if (!require("dplyr")) install.packages('dplyr')
+
+
 
 library(dtplyr)
 library(dplyr)
@@ -42,7 +48,7 @@ Read Data
 ```{r}
 url <- "/Users/jasoncho/Documents/GitHub/ads-fall2023-project2-group6/data/MajorDisaster_data.csv"
 
-major_disaster_data <- read.csv("/Users/mannyb/Documents/GitHub/ads-fall2023-project2-group6/data/MajorDisaster_data.csv")
+major_disaster_data <- read.csv(url)
 
 #head(major_disaster_data) 
 unique(major_disaster_data$incidentType)
@@ -69,16 +75,20 @@ state_data <- major_disaster_data %>%
 
 
 ## Yearly and Monthly Analysis
-- I added an option to select a specific disaster type, including the 'All' option
-- I added a slide-bar to select a year more intuitively
-- I also added an option to check the average duration
+- Added an option to select a specific disaster type, including the 'All' option
+- Added a slide-bar to select a year more intuitively
+- Added an option to check the average duration
+- Added a feature to select specific states
 
 ```{r}
-# Define UI
+# UI
 ui <- fluidPage(
-  titlePanel("Major Disaster Data Analysis"),
+  titlePanel("Major Disaster Data Analysis by State and Disaster"),
   sidebarLayout(
     sidebarPanel(
+      selectInput("state", "Select State:",
+                  choices = c("All", unique(major_disaster_data$state)),
+                  selected = "All"),
       selectInput("disasterType", "Select Disaster Type:",
                   choices = c("All", unique(major_disaster_data$incidentType)),
                   selected = "All"),
@@ -101,11 +111,17 @@ ui <- fluidPage(
   )
 )
 
-
 # SERVER
 server <- function(input, output) {
   output$disasterPlot <- renderPlot({
     filtered_data <- major_disaster_data
+    
+    # Filter by state
+    if (input$state != "All") {
+      filtered_data <- filtered_data %>% filter(state == input$state)
+    }
+    
+    # Filter by disaster type
     if (input$disasterType != "All") {
       filtered_data <- filtered_data %>% filter(incidentType == input$disasterType)
     }
@@ -141,74 +157,9 @@ server <- function(input, output) {
 }
 
 
-# Run the application 
 shinyApp(ui = ui, server = server)
 ```
 
-```{r}
-
-# UI
-ui <- fluidPage(
-  titlePanel("Major Disaster Data Analysis by State and Disaster"),
-  sidebarLayout(
-    sidebarPanel(
-      selectInput("state", "Select State:",
-                  choices = c("All", unique(major_disaster_data$state)),
-                  selected = "All"),
-      selectInput("disasterType", "Select Disaster Type:",
-                  choices = c("All", unique(major_disaster_data$incidentType)),
-                  selected = "All"),
-      radioButtons("analysisType", "Choose Analysis Type:",
-                   choices = c("Yearly Analysis", "Seasonal Analysis"),
-                   selected = "Yearly Analysis"),
-      conditionalPanel(
-        condition = "input.analysisType == 'Seasonal Analysis'",
-        sliderInput("yearSlider", "Select Year:",
-                    min = min(major_disaster_data$Year),
-                    max = max(major_disaster_data$Year),
-                    value = max(major_disaster_data$Year),
-                    step = 1,
-                    round = TRUE)
-      )
-    ),
-    mainPanel(
-      plotOutput("disasterPlot")
-    )
-  )
-)
-
-# SERVER
-server <- function(input, output) {
-  output$disasterPlot <- renderPlot({
-    filtered_data <- major_disaster_data
-    
-    # Filter by state
-    if (input$state != "All") {
-      filtered_data <- filtered_data %>% filter(state == input$state)
-    }
-    
-    # Filter by disaster type
-    if (input$disasterType != "All") {
-      filtered_data <- filtered_data %>% filter(incidentType == input$disasterType)
-    }
-    
-    if (input$analysisType == "Yearly Analysis") {
-      yearly_data <- filtered_data %>% group_by(Year) %>% summarise(Count = n())
-      ggplot(yearly_data, aes(x=Year, y=Count)) + geom_line() + labs(title=paste("Yearly", input$disasterType, "Declarations for", input$state))
-    } else {
-      monthly_data <- filtered_data %>% 
-                      filter(Year == input$yearSlider) %>% 
-                      group_by(Month) %>% 
-                      summarise(Count = n())
-      ggplot(monthly_data, aes(x=Month, y=Count)) + geom_bar(stat="identity") + 
-      labs(title=paste("Monthly", input$disasterType, "Declarations for", input$state, "in", input$yearSlider))
-    }
-  })
-}
-
-
-shinyApp(ui = ui, server = server)
-```
 
 ```{r}
 
