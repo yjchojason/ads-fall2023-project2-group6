@@ -33,6 +33,8 @@ library(leaflet)
 library(viridis)
 library(DT)
 library(dygraphs)
+library(tidyr)
+
 ```
 
 
@@ -67,11 +69,12 @@ state_data <- major_disaster_data %>%
 
 
 ## Yearly and Monthly Analysis
-- I have added an option to select a specific disaster type, including the 'All' option
-- I have added a slide-bar to select a year more intuitively
-```{r}
+- I added an option to select a specific disaster type, including the 'All' option
+- I added a slide-bar to select a year more intuitively
+- I also added an option to check the average duration
 
-# UI
+```{r}
+# Define UI
 ui <- fluidPage(
   titlePanel("Major Disaster Data Analysis"),
   sidebarLayout(
@@ -80,7 +83,7 @@ ui <- fluidPage(
                   choices = c("All", unique(major_disaster_data$incidentType)),
                   selected = "All"),
       radioButtons("analysisType", "Choose Analysis Type:",
-                   choices = c("Yearly Analysis", "Seasonal Analysis"),
+                   choices = c("Yearly Analysis", "Seasonal Analysis", "Average Duration Analysis"),
                    selected = "Yearly Analysis"),
       conditionalPanel(
         condition = "input.analysisType == 'Seasonal Analysis'",
@@ -98,6 +101,7 @@ ui <- fluidPage(
   )
 )
 
+
 # SERVER
 server <- function(input, output) {
   output$disasterPlot <- renderPlot({
@@ -109,13 +113,29 @@ server <- function(input, output) {
     if (input$analysisType == "Yearly Analysis") {
       yearly_data <- filtered_data %>% group_by(Year) %>% summarise(Count = n())
       ggplot(yearly_data, aes(x=Year, y=Count)) + geom_line() + labs(title=paste("Yearly", input$disasterType, "Declarations"))
-    } else {
+      
+    } else if (input$analysisType == "Seasonal Analysis") {
+      all_months <- data.frame(Month = 1:12)
       monthly_data <- filtered_data %>% 
                       filter(Year == input$yearSlider) %>% 
                       group_by(Month) %>% 
                       summarise(Count = n())
+      monthly_data <- all_months %>% 
+                      left_join(monthly_data, by = "Month") %>% 
+                      replace_na(list(Count = 0))
+      monthly_data$Month <- factor(monthly_data$Month, levels = 1:12, labels = month.abb)
       ggplot(monthly_data, aes(x=Month, y=Count)) + geom_bar(stat="identity") + 
       labs(title=paste("Monthly", input$disasterType, "Declarations for", input$yearSlider))
+      
+    } else { # Average Duration Analysis
+      filtered_data$Duration <- as.Date(filtered_data$incidentEndDate) - as.Date(filtered_data$incidentBeginDate)
+      avg_duration <- filtered_data %>%
+        group_by(incidentType) %>%
+        summarise(AverageDuration = mean(Duration, na.rm = TRUE))
+      ggplot(avg_duration, aes(x = incidentType, y = AverageDuration)) +
+        geom_bar(stat = "identity") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+        labs(title = "Average Duration of Disasters by Type", y = "Average Duration (days)", x = "Disaster Type")
     }
   })
 }
@@ -123,7 +143,6 @@ server <- function(input, output) {
 
 # Run the application 
 shinyApp(ui = ui, server = server)
-
 ```
 
 ```{r}
@@ -252,3 +271,7 @@ server <- function(input, output) {
 
 shinyApp(ui, server)
 ```
+
+
+
+
