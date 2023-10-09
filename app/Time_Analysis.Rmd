@@ -18,9 +18,15 @@ if (!require("dtplyr")) install.packages('dtplyr')
 if (!require("lubridate")) install.packages('lubridate')
 if (!require("ggmap")) install.packages('ggmap')
 if (!require("choroplethrZip")) {
-  # install.packages("devtools")
+  #install.packages("devtools")
   library(devtools)
   install_github('arilamstein/choroplethrZip@v1.5.0')}
+
+if (!require("USA.state.boundaries")) install.packages('USA.state.boundaries')
+if (!require("dygraphs")) install.packages('dygraphs')
+if (!require("dplyr")) install.packages('dplyr')
+
+
 
 library(dtplyr)
 library(dplyr)
@@ -28,6 +34,13 @@ library(DT)
 library(lubridate)
 library(ggplot2)
 library(shiny)
+library(USA.state.boundaries)
+library(leaflet)
+library(viridis)
+library(DT)
+library(dygraphs)
+library(tidyr)
+
 ```
 
 
@@ -50,21 +63,37 @@ major_disaster_data$Year <- as.numeric(format(major_disaster_data$declarationDat
 major_disaster_data$Month <- as.numeric(format(major_disaster_data$declarationDate, "%m"))
 ```
 
-## Yearly and Monthly Analysis
-- I have added an option to select a specific disaster type, including the 'All' option
-- I have added a slide-bar to select a year more intuitively
+Clean up Data to do state-wise
+
 ```{r}
 
+state_data <- major_disaster_data %>%
+  select(state, declarationDate, Year, Month, disasterNumber, incidentType) %>%
+  distinct(disasterNumber, .keep_all = TRUE)
+
+```
+
+
+## Yearly and Monthly Analysis
+- Added an option to select a specific disaster type, including the 'All' option
+- Added a slide-bar to select a year more intuitively
+- Added an option to check the average duration
+- Added a feature to select specific states
+
+```{r}
 # UI
 ui <- fluidPage(
-  titlePanel("Major Disaster Data Analysis"),
+  titlePanel("Major Disaster Data Analysis by State and Disaster"),
   sidebarLayout(
     sidebarPanel(
+      selectInput("state", "Select State:",
+                  choices = c("All", unique(major_disaster_data$state)),
+                  selected = "All"),
       selectInput("disasterType", "Select Disaster Type:",
                   choices = c("All", unique(major_disaster_data$incidentType)),
                   selected = "All"),
       radioButtons("analysisType", "Choose Analysis Type:",
-                   choices = c("Yearly Analysis", "Seasonal Analysis"),
+                   choices = c("Yearly Analysis", "Seasonal Analysis", "Average Duration Analysis"),
                    selected = "Yearly Analysis"),
       conditionalPanel(
         condition = "input.analysisType == 'Seasonal Analysis'",
@@ -86,6 +115,13 @@ ui <- fluidPage(
 server <- function(input, output) {
   output$disasterPlot <- renderPlot({
     filtered_data <- major_disaster_data
+    
+    # Filter by state
+    if (input$state != "All") {
+      filtered_data <- filtered_data %>% filter(state == input$state)
+    }
+    
+    # Filter by disaster type
     if (input$disasterType != "All") {
       filtered_data <- filtered_data %>% filter(incidentType == input$disasterType)
     }
@@ -93,24 +129,99 @@ server <- function(input, output) {
     if (input$analysisType == "Yearly Analysis") {
       yearly_data <- filtered_data %>% group_by(Year) %>% summarise(Count = n())
       ggplot(yearly_data, aes(x=Year, y=Count)) + geom_line() + labs(title=paste("Yearly", input$disasterType, "Declarations"))
-    } else {
+      
+    } else if (input$analysisType == "Seasonal Analysis") {
+      all_months <- data.frame(Month = 1:12)
       monthly_data <- filtered_data %>% 
                       filter(Year == input$yearSlider) %>% 
                       group_by(Month) %>% 
                       summarise(Count = n())
+      monthly_data <- all_months %>% 
+                      left_join(monthly_data, by = "Month") %>% 
+                      replace_na(list(Count = 0))
+      monthly_data$Month <- factor(monthly_data$Month, levels = 1:12, labels = month.abb)
       ggplot(monthly_data, aes(x=Month, y=Count)) + geom_bar(stat="identity") + 
       labs(title=paste("Monthly", input$disasterType, "Declarations for", input$yearSlider))
+      
+    } else { # Average Duration Analysis
+      filtered_data$Duration <- as.Date(filtered_data$incidentEndDate) - as.Date(filtered_data$incidentBeginDate)
+      avg_duration <- filtered_data %>%
+        group_by(incidentType) %>%
+        summarise(AverageDuration = mean(Duration, na.rm = TRUE))
+      ggplot(avg_duration, aes(x = incidentType, y = AverageDuration)) +
+        geom_bar(stat = "identity") +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+        labs(title = "Average Duration of Disasters by Type", y = "Average Duration (days)", x = "Disaster Type")
     }
   })
 }
 
-# Run the application 
-shinyApp(ui = ui, server = server)
 
+shinyApp(ui = ui, server = server)
 ```
 
 
+```{r}
 
+stateShapes <- state_boundaries_wgs84
+
+ui <- fluidPage(
+  titlePanel("Most Frequent Incident Type Analysis by State"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("yearSlider", "Select Year:",
+                  min = min(major_disaster_data$Year),
+                  max = max(major_disaster_data$Year),
+                  value = min(major_disaster_data$Year),
+                  step = 1,
+                  round = TRUE,
+                  sep = "")
+    ),
+    mainPanel(
+      leafletOutput("map"),
+      DTOutput("stateData")
+    )
+  )
+)
+
+server <- function(input, output) {
+  
+  output$map <- renderLeaflet({
+    data_year <- major_disaster_data %>%
+      filter(Year == input$yearSlider) %>%
+      group_by(state) %>%
+      count(incidentType, sort = TRUE)
+    
+    merged_data <- merge(stateShapes, data_year, by.x = "STATE_ABBR", by.y = "state", all.x = TRUE)
+    
+    pal <- colorFactor(viridis(24), domain = unique(major_disaster_data$incidentType))
+    
+    leaflet(data = merged_data) %>%
+      addProviderTiles("CartoDB.Positron") %>%
+      setView(lng = -98.583333, lat = 39.833333, zoom = 3.4) %>%
+      addPolygons(
+        fillColor = ~pal(incidentType),
+        fillOpacity = 0.7,
+        weight = 1,
+        color = "#BDBDC3",
+        highlight = highlightOptions(weight = 2, color = "#666", fillOpacity = 0.7, bringToFront = TRUE)
+      ) %>%
+      addLegend(pal = pal, values = merged_data$incidentType, title = "Incident Types", opacity = 0.7, position = "bottomright")
+  })
+
+  output$stateData <- renderDT({
+    data_year <- major_disaster_data %>% 
+      filter(Year == input$yearSlider) %>%
+      select(state, declarationDate, incidentType) %>%
+      arrange(state)
+    
+    datatable(data_year, filter = 'top')
+  })
+  
+}
+
+shinyApp(ui, server)
+```
 
 
 
