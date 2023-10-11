@@ -12,7 +12,7 @@ There are two main versions available:
 2. Most Frequent Incident Type
 
 
-## Major Disaster Data Analysis Version
+# Major Disaster Data Analysis Version
 
 Dive into a detailed analysis of major disasters using this version. Below are the features it offers:
 
@@ -47,7 +47,7 @@ Dive into a detailed analysis of major disasters using this version. Below are t
 This tool aims to provide a comprehensive overview of major disasters, enabling users to derive meaningful insights and trends from the data.
 
 
-## Most Frequent Incident Type Version
+# Most Frequent Incident Type Version
 
 ## Features:
 
@@ -69,3 +69,10 @@ This tool aims to provide a comprehensive overview of major disasters, enabling 
   
 ### Declaration Date Filtering:
 - Have a specific time frame in mind? Set and filter your data according to your desired declaration period.
+
+## Advantages:
+- Visual Analysis: The map provides a direct visualization making it easier to understand patterns.
+- Comprehensive Data: Whether you're observing an overview on the map or delving into specifics with the chart, the tool ensures a thorough understanding of the data.
+
+## Conclusion:
+The Most Frequent Incident Type version is designed to present a clear and concise picture of the most dominant disasters across states that allows the users to navigate, filter, and anlayze easily.
