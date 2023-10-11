@@ -1,7 +1,12 @@
+path = getwd()
+path
+disPath  = paste (path, "/Disaster_data.csv", sep = "", collapse = NULL)
+url <- paste (path, "/MajorDisaster_data.csv", sep = "", collapse = NULL)
+dis <- read.csv(disPath)
 
 
-dis <- read.csv("/Users/mannyb/Documents/GitHub/ads-fall2023-project2-group6/data/Disaster_data.csv")
-url <- "/Users/mannyb/Documents/GitHub/ads-fall2023-project2-group6/data/MajorDisaster_data.csv"
+# dis <- read.csv("/Users/mannyb/Documents/GitHub/ads-fall2023-project2-group6/data/Disaster_data.csv")
+# url <- "/Users/mannyb/Documents/GitHub/ads-fall2023-project2-group6/data/MajorDisaster_data.csv"
 
 if (!require("DT")) install.packages('DT')
 if (!require("dtplyr")) install.packages('dtplyr')
