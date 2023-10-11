@@ -1,1 +1,0 @@
-First note: modified by Jason Cho
