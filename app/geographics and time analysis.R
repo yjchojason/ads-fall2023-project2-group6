@@ -1,12 +1,10 @@
 
 
-dis <- read.csv("https://raw.githubusercontent.com/yjchojason/ads-fall2023-project2-group6/master/data/Disaster_data.csv?token=GHSAT0AAAAAACHNAGT3YWKLCKLLBRQC4P56ZJDUI7Q")
-url <- "https://raw.githubusercontent.com/yjchojason/ads-fall2023-project2-group6/master/data/MajorDisaster_data.csv?token=GHSAT0AAAAAACHNAGT2LCN2U7EWA3FOIFJKZJDUXEA"
-
+dis <- read.csv("/Users/wshmac/Documents/GitHub/ads-fall2023-project2-group6/data/Disaster_data.csv")
+url <- "/Users/wshmac/Documents/GitHub/ads-fall2023-project2-group6/data/MajorDisaster_data.csv"
 #geographic analysis 
 
 library(shiny) 
-install.packages("usmap")
 library(usmap)
 library(ggplot2)
 
@@ -119,18 +117,28 @@ major_disaster_data <- read.csv(url)
 #head(major_disaster_data) 
 unique(major_disaster_data$incidentType)
 
-# declarationDate -> Date format
+#declarationDate -> Date format
 major_disaster_data$declarationDate <- as.Date(major_disaster_data$declarationDate, format="%Y-%m-%d")
 
 # Extracting Year and Month
 major_disaster_data$Year <- as.numeric(format(major_disaster_data$declarationDate, "%Y"))
 major_disaster_data$Month <- as.numeric(format(major_disaster_data$declarationDate, "%m"))
 
+#Clean up Data to do state-wise
+state_data <- major_disaster_data %>%
+  select(state, declarationDate, Year, Month, disasterNumber, incidentType) %>%
+  distinct(disasterNumber, .keep_all = TRUE)
+
+## Yearly and Monthly Analysis
+
 # Define UI
-ui2 <- fluidPage(
-  titlePanel("Major Disaster Time Analysis"),
+ui2<- fluidPage(
+  titlePanel("Major Disaster Data Analysis by State and Disaster"),
   sidebarLayout(
     sidebarPanel(
+      selectInput("state", "Select State:",
+                  choices = c("All", unique(major_disaster_data$state)),
+                  selected = "All"),
       selectInput("disasterType", "Select Disaster Type:",
                   choices = c("All", unique(major_disaster_data$incidentType)),
                   selected = "All"),
@@ -153,11 +161,17 @@ ui2 <- fluidPage(
   )
 )
 
-
 # SERVER
 server2 <- function(input, output) {
   output$disasterPlot <- renderPlot({
     filtered_data <- major_disaster_data
+    
+    # Filter by state
+    if (input$state != "All") {
+      filtered_data <- filtered_data %>% filter(state == input$state)
+    }
+    
+    # Filter by disaster type
     if (input$disasterType != "All") {
       filtered_data <- filtered_data %>% filter(incidentType == input$disasterType)
     }
@@ -192,11 +206,71 @@ server2 <- function(input, output) {
   })
 }
 
+stateShapes <- state_boundaries_wgs84
+
+ui3 <- fluidPage(
+  titlePanel("Most Frequent Incident Type Analysis by State"),
+  sidebarLayout(
+    sidebarPanel(
+      sliderInput("yearSlider", "Select Year:",
+                  min = min(major_disaster_data$Year),
+                  max = max(major_disaster_data$Year),
+                  value = min(major_disaster_data$Year),
+                  step = 1,
+                  round = TRUE,
+                  sep = "")
+    ),
+    mainPanel(
+      leafletOutput("map"),
+      DTOutput("stateData")
+    )
+  )
+)
+
+server3 <- function(input, output) {
+  
+  output$map <- renderLeaflet({
+    data_year <- major_disaster_data %>%
+      filter(Year == input$yearSlider) %>%
+      group_by(state) %>%
+      count(incidentType, sort = TRUE)
+    
+    merged_data <- merge(stateShapes, data_year, by.x = "STATE_ABBR", by.y = "state", all.x = TRUE)
+    
+    pal <- colorFactor(viridis(24), domain = unique(major_disaster_data$incidentType))
+    
+    leaflet(data = merged_data) %>%
+      addProviderTiles("CartoDB.Positron") %>%
+      setView(lng = -98.583333, lat = 39.833333, zoom = 3.4) %>%
+      addPolygons(
+        fillColor = ~pal(incidentType),
+        fillOpacity = 0.7,
+        weight = 1,
+        color = "#BDBDC3",
+        highlight = highlightOptions(weight = 2, color = "#666", fillOpacity = 0.7, bringToFront = TRUE)
+      ) %>%
+      addLegend(pal = pal, values = merged_data$incidentType, title = "Incident Types", opacity = 0.7, position = "bottomright")
+  })
+  
+  output$stateData <- renderDT({
+    data_year <- major_disaster_data %>% 
+      filter(Year == input$yearSlider) %>%
+      select(state, declarationDate, incidentType) %>%
+      arrange(state)
+    
+    datatable(data_year, filter = 'top')
+  })
+  
+}
 
 ui <- fluidPage(
-  uiOutput("app1"),
-  uiOutput("app2")
+  tabsetPanel(
+    tabPanel('app 1', ui1),
+    tabPanel('app 2', ui2),
+    tabPanel('app 3', ui3)
+  )
 )
+
 server <- function(input, output) {
   output$app1 <- renderUI({
     ui1
@@ -206,9 +280,14 @@ server <- function(input, output) {
     ui2
   })
   
+  output$app3 <- renderUI({
+    ui3
+  })
+  
   # Include the server logic for both apps within the main server function
   server1(input, output)
   server2(input, output)
+  server3(input, output)
 }
 
 shinyApp(ui, server)
