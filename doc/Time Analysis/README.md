@@ -45,3 +45,27 @@ Dive into a detailed analysis of major disasters using this version. Below are t
 ## Conclusion:
 
 This tool aims to provide a comprehensive overview of major disasters, enabling users to derive meaningful insights and trends from the data.
+
+
+## Most Frequent Incident Type Version
+
+## Features:
+
+### Interactive Map:
+- Visualize the most common disaster for every state using the intuitive map provided.
+  
+### Yearly Selection:
+- Manually select the year you wish to analyze using the slide bar.
+  
+### Detailed Yearly Data:
+- For each selected year, a detailed chart is available underneath the map.
+- This chart furnishes details regarding:
+  1. State
+  2. Declaration Date
+  3. Incident Type
+ 
+### State Search:
+- If you're keen on observing the data for a specific state, use the manual search option.
+  
+### Declaration Date Filtering:
+- Have a specific time frame in mind? Set and filter your data according to your desired declaration period.
