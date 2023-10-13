@@ -5,6 +5,8 @@ account: yjchojason
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 10166761
-bundleId: 7792409
+bundleId: 7801040
 url: https://yjchojason.shinyapps.io/group6/
 version: 1
+asMultiple: FALSE
+asStatic: FALSE

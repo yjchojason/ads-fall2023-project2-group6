@@ -6,24 +6,24 @@ path
 
 
 #<<<<<<< HEAD:app/app.R
-dis <- read.csv("/Users/jasoncho/Documents/GitHub/ads-fall2023-project2-group6/app/Disaster_data.csv")
-url <- "/Users/jasoncho/Documents/GitHub/ads-fall2023-project2-group6/app/MajorDisaster_data.csv"
+dis <- read.csv("Disaster_data.csv")
+url <- "MajorDisaster_data.csv"
 
 # dis <- read.csv("/Users/mannyb/Documents/GitHub/ads-fall2023-project2-group6/data/Disaster_data.csv")
 # url <- "/Users/mannyb/Documents/GitHub/ads-fall2023-project2-group6/data/MajorDisaster_data.csv"
 #>>>>>>> 868f044597943c451e9d276c59b26dd3d2c2bc1e:app/geographics and time analysis.R
 
 if (!require("DT")) install.packages('DT')
-if (!require("dtplyr")) install.packages('dtplyr')
+#if (!require("dtplyr")) install.packages('dtplyr')
 if (!require("lubridate")) install.packages('lubridate')
-if (!require("ggmap")) install.packages('ggmap')
+#if (!require("ggmap")) install.packages('ggmap')
 if (!require("choroplethrZip")) {
   #install.packages("devtools")
   library(devtools)
   install_github('arilamstein/choroplethrZip@v1.5.0')}
 
 if (!require("USA.state.boundaries")) install.packages('USA.state.boundaries')
-if (!require("dygraphs")) install.packages('dygraphs')
+#if (!require("dygraphs")) install.packages('dygraphs')
 if (!require("dplyr")) install.packages('dplyr')
 if (!require("usmap")) install.packages('usmap')
 
