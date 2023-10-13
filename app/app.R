@@ -1,7 +1,17 @@
+path = getwd()
+path
+#disPath  = paste (path, "/Disaster_data.csv", sep = "", collapse = NULL)
+#url <- paste (path, "/MajorDisaster_data.csv", sep = "", collapse = NULL)
+#dis <- read.csv(disPath)
 
 
+#<<<<<<< HEAD:app/app.R
 dis <- read.csv("/Users/jasoncho/Documents/GitHub/ads-fall2023-project2-group6/app/Disaster_data.csv")
 url <- "/Users/jasoncho/Documents/GitHub/ads-fall2023-project2-group6/app/MajorDisaster_data.csv"
+
+# dis <- read.csv("/Users/mannyb/Documents/GitHub/ads-fall2023-project2-group6/data/Disaster_data.csv")
+# url <- "/Users/mannyb/Documents/GitHub/ads-fall2023-project2-group6/data/MajorDisaster_data.csv"
+#>>>>>>> 868f044597943c451e9d276c59b26dd3d2c2bc1e:app/geographics and time analysis.R
 
 if (!require("DT")) install.packages('DT')
 if (!require("dtplyr")) install.packages('dtplyr')
